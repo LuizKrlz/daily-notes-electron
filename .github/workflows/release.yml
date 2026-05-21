@@ -12,6 +12,8 @@ jobs:
   release:
     name: Build and publish release
     runs-on: macos-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout repository
