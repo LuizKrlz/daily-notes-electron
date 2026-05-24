@@ -193,6 +193,8 @@ The workflow disables automatic certificate discovery with:
 CSC_IDENTITY_AUTO_DISCOVERY=false
 ```
 
+The Electron Builder config also sets `mac.identity` to `null`, which prevents CI or a local machine from accidentally signing the app with an invalid or unrelated certificate. After packaging, an `afterPack` hook applies an ad-hoc signature with `codesign --sign -` so bundle resources are still sealed.
+
 This allows CI builds to run without an Apple Developer certificate. For public distribution outside local/internal use, Apple signing and notarization should be configured.
 
 Without notarization, macOS may block the first launch of an app downloaded from the internet. In that case, use right-click > Open, or approve it explicitly in System Settings > Privacy & Security.

@@ -53,12 +53,15 @@
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*"
     ],
+    "afterPack": "scripts/after-pack-sign.cjs",
     "files": [
       "dist/**/*",
       "package.json"
     ],
     "mac": {
       "category": "public.app-category.productivity",
+      "identity": null,
+      "hardenedRuntime": false,
       "artifactName": "DailyNotes-${arch}.${ext}",
       "target": [
         "dmg",
