@@ -49,5 +49,7 @@ export interface DailyFilters {
 export interface DailyListResult {
   dailies: Daily[]
   projects: string[]
+  people: string[]
+  projectParticipants: Record<string, string[]>
   tags: string[]
 }

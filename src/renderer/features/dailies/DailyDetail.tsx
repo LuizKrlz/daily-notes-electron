@@ -18,6 +18,8 @@ const sections: Array<[keyof Daily, string]> = [
   ["notes", "Observações"]
 ]
 
+const toDisplayHtml = (value: string) => (value.includes("<") ? value : value.replace(/\n/g, "<br>"))
+
 export function DailyDetail({ daily, onEdit, onDelete }: DailyDetailProps) {
   if (!daily) {
     return (
@@ -71,7 +73,7 @@ export function DailyDetail({ daily, onEdit, onDelete }: DailyDetailProps) {
             return (
               <section key={key} className="rounded-md border border-border bg-card p-5">
                 <h2 className="text-sm font-semibold uppercase text-muted-foreground">{label}</h2>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-card-foreground">{value}</p>
+                <div className="mt-3 text-sm leading-7 text-card-foreground" dangerouslySetInnerHTML={{ __html: toDisplayHtml(value) }} />
               </section>
             )
           })}

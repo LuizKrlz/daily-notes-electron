@@ -8,6 +8,7 @@ type DailyRow = {
   id: string
   title: string
   daily_date: string
+  project_id: string | null
   project: string | null
   summary: string | null
   yesterday: string | null
@@ -43,13 +44,14 @@ export class DailyService {
     const timestamp = now()
 
     const transaction = this.db.transaction(() => {
+      const projectId = this.ensureProject(data.project)
       this.db
         .prepare(
           `INSERT INTO dailies (
-            id, title, daily_date, project, summary, yesterday, today, blockers, discussions,
+            id, title, daily_date, project_id, project, summary, yesterday, today, blockers, discussions,
             decisions, next_steps, notes, created_at, updated_at
           ) VALUES (
-            @id, @title, @dailyDate, @project, @summary, @yesterday, @today, @blockers,
+            @id, @title, @dailyDate, @projectId, @project, @summary, @yesterday, @today, @blockers,
             @discussions, @decisions, @nextSteps, @notes, @createdAt, @updatedAt
           )`
         )
@@ -57,6 +59,7 @@ export class DailyService {
           id: dailyId,
           title: data.title.trim(),
           dailyDate: data.dailyDate || today(),
+          projectId,
           project: emptyToNull(data.project),
           summary: emptyToNull(data.summary),
           yesterday: emptyToNull(data.yesterday),
@@ -70,7 +73,7 @@ export class DailyService {
           updatedAt: timestamp
         })
 
-      this.replaceParticipants(dailyId, data.participants)
+      this.replaceParticipants(dailyId, data.participants, projectId)
       this.replaceTags(dailyId, data.tags)
       this.replaceTasks(dailyId, data.tasks)
     })
@@ -105,11 +108,13 @@ export class DailyService {
     const timestamp = now()
 
     const transaction = this.db.transaction(() => {
+      const projectId = this.ensureProject(nextDaily.project)
       this.db
         .prepare(
           `UPDATE dailies SET
             title = @title,
             daily_date = @dailyDate,
+            project_id = @projectId,
             project = @project,
             summary = @summary,
             yesterday = @yesterday,
@@ -126,6 +131,7 @@ export class DailyService {
           id: dailyId,
           title: nextDaily.title.trim(),
           dailyDate: nextDaily.dailyDate || today(),
+          projectId,
           project: emptyToNull(nextDaily.project),
           summary: emptyToNull(nextDaily.summary),
           yesterday: emptyToNull(nextDaily.yesterday),
@@ -138,7 +144,7 @@ export class DailyService {
           updatedAt: timestamp
         })
 
-      this.replaceParticipants(dailyId, nextDaily.participants)
+      this.replaceParticipants(dailyId, nextDaily.participants, projectId)
       this.replaceTags(dailyId, nextDaily.tags)
       this.replaceTasks(dailyId, nextDaily.tasks)
     })
@@ -186,7 +192,11 @@ export class DailyService {
         d.yesterday LIKE @query OR d.today LIKE @query OR d.blockers LIKE @query OR
         d.discussions LIKE @query OR d.decisions LIKE @query OR d.next_steps LIKE @query OR
         d.notes LIKE @query OR
-        EXISTS (SELECT 1 FROM participants p WHERE p.daily_id = d.id AND p.name LIKE @query) OR
+        EXISTS (
+          SELECT 1 FROM daily_people dp
+          JOIN people person ON person.id = dp.person_id
+          WHERE dp.daily_id = d.id AND person.name LIKE @query
+        ) OR
         EXISTS (SELECT 1 FROM daily_tasks task WHERE task.daily_id = d.id AND task.title LIKE @query) OR
         EXISTS (SELECT 1 FROM daily_tags dt JOIN tags t ON t.id = dt.tag_id WHERE dt.daily_id = d.id AND t.name LIKE @query)
       )`)
@@ -199,6 +209,8 @@ export class DailyService {
     return {
       dailies: rows.map((row) => this.hydrateDaily(row)),
       projects: this.listProjects(),
+      people: this.listPeople(),
+      projectParticipants: this.listProjectParticipants(),
       tags: this.listTags()
     }
   }
@@ -246,11 +258,42 @@ export class DailyService {
     }
   }
 
-  private replaceParticipants(dailyId: string, participants: string[]) {
-    this.db.prepare("DELETE FROM participants WHERE daily_id = ?").run(dailyId)
-    const insert = this.db.prepare("INSERT INTO participants (id, daily_id, name) VALUES (?, ?, ?)")
+  private ensureProject(projectName?: string) {
+    const name = projectName?.trim()
+    if (!name) {
+      return null
+    }
+
+    this.db.prepare("INSERT OR IGNORE INTO projects (id, name, created_at) VALUES (?, ?, ?)").run(id(), name, now())
+    const project = this.db.prepare("SELECT id FROM projects WHERE name = ?").get(name) as { id: string } | undefined
+    return project?.id ?? null
+  }
+
+  private ensurePerson(name: string) {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      return null
+    }
+
+    this.db.prepare("INSERT OR IGNORE INTO people (id, name, created_at) VALUES (?, ?, ?)").run(id(), trimmed, now())
+    const person = this.db.prepare("SELECT id FROM people WHERE name = ?").get(trimmed) as { id: string } | undefined
+    return person?.id ?? null
+  }
+
+  private replaceParticipants(dailyId: string, participants: string[], projectId: string | null) {
+    this.db.prepare("DELETE FROM daily_people WHERE daily_id = ?").run(dailyId)
+    const insertDailyPerson = this.db.prepare("INSERT OR IGNORE INTO daily_people (daily_id, person_id) VALUES (?, ?)")
+    const insertProjectPerson = this.db.prepare("INSERT OR IGNORE INTO project_people (project_id, person_id) VALUES (?, ?)")
+
     Array.from(new Set(participants.map((item) => item.trim()).filter(Boolean))).forEach((name) => {
-      insert.run(id(), dailyId, name)
+      const personId = this.ensurePerson(name)
+      if (!personId) {
+        return
+      }
+      insertDailyPerson.run(dailyId, personId)
+      if (projectId) {
+        insertProjectPerson.run(projectId, personId)
+      }
     })
   }
 
@@ -287,7 +330,10 @@ export class DailyService {
   }
 
   private listParticipants(dailyId: string) {
-    return this.db.prepare("SELECT name FROM participants WHERE daily_id = ? ORDER BY name").all(dailyId).map((row) => (row as { name: string }).name)
+    return this.db
+      .prepare("SELECT person.name FROM people person JOIN daily_people dp ON dp.person_id = person.id WHERE dp.daily_id = ? ORDER BY person.name")
+      .all(dailyId)
+      .map((row) => (row as { name: string }).name)
   }
 
   private listDailyTags(dailyId: string) {
@@ -305,10 +351,37 @@ export class DailyService {
   }
 
   private listProjects() {
-    return this.db
-      .prepare("SELECT DISTINCT project FROM dailies WHERE project IS NOT NULL AND project != '' ORDER BY project")
+    const names = this.db
+      .prepare("SELECT name AS project FROM projects UNION SELECT DISTINCT project FROM dailies WHERE project IS NOT NULL AND project != '' ORDER BY project")
       .all()
       .map((row) => (row as { project: string }).project)
+
+    return Array.from(new Set(names))
+  }
+
+  private listPeople() {
+    return this.db
+      .prepare("SELECT name FROM people ORDER BY name")
+      .all()
+      .map((row) => (row as { name: string }).name)
+  }
+
+  private listProjectParticipants() {
+    const rows = this.db
+      .prepare(
+        `SELECT project.name AS project, person.name AS person
+         FROM project_people pp
+         JOIN projects project ON project.id = pp.project_id
+         JOIN people person ON person.id = pp.person_id
+         ORDER BY project.name, person.name`
+      )
+      .all() as Array<{ project: string; person: string }>
+
+    return rows.reduce<Record<string, string[]>>((acc, row) => {
+      acc[row.project] = acc[row.project] ?? []
+      acc[row.project].push(row.person)
+      return acc
+    }, {})
   }
 
   private listTags() {

@@ -5,6 +5,8 @@ interface DailyState {
   dailies: Daily[]
   selectedDaily?: Daily
   projects: string[]
+  people: string[]
+  projectParticipants: Record<string, string[]>
   tags: string[]
   filters: DailyFilters
   isLoading: boolean
@@ -19,6 +21,8 @@ interface DailyState {
 export const useDailyStore = create<DailyState>((set, get) => ({
   dailies: [],
   projects: [],
+  people: [],
+  projectParticipants: {},
   tags: [],
   filters: {},
   isLoading: false,
@@ -28,6 +32,8 @@ export const useDailyStore = create<DailyState>((set, get) => ({
     set({
       dailies: result.dailies,
       projects: result.projects,
+      people: result.people,
+      projectParticipants: result.projectParticipants,
       tags: result.tags,
       selectedDaily: get().selectedDaily ?? result.dailies[0],
       isLoading: false

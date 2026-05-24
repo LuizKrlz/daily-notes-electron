@@ -51,4 +51,25 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "liga" 1, "calt" 1;
   }
+
+  .mention {
+    @apply inline-flex rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary;
+  }
+
+  .prose-content ul {
+    @apply my-2 list-disc pl-5;
+  }
+
+  .prose-content ol {
+    @apply my-2 list-decimal pl-5;
+  }
+
+  .prose-content blockquote {
+    @apply my-2 border-l-2 border-primary pl-3 text-muted-foreground;
+  }
+
+  .prose-content b,
+  .prose-content strong {
+    @apply font-semibold;
+  }
 }

@@ -32,7 +32,21 @@ function readStoredListPanelOpen() {
 }
 
 export function App() {
-  const { dailies, selectedDaily, projects, tags, filters, loadDailies, selectDaily, createDaily, updateDaily, deleteDaily, updateTaskStatus } = useDailyStore()
+  const {
+    dailies,
+    selectedDaily,
+    projects,
+    people,
+    projectParticipants,
+    tags,
+    filters,
+    loadDailies,
+    selectDaily,
+    createDaily,
+    updateDaily,
+    deleteDaily,
+    updateTaskStatus
+  } = useDailyStore()
   const [mode, setMode] = useState<Mode>("view")
   const [page, setPage] = useState<Page>("dailies")
   const [query, setQuery] = useState("")
@@ -202,7 +216,15 @@ export function App() {
     ) : mode === "view" ? (
       <DailyDetail daily={selectedDaily} onEdit={() => setMode("edit")} onDelete={removeDaily} />
     ) : (
-      <DailyForm daily={mode === "edit" ? selectedDaily : undefined} projects={projects} tags={tags} onCancel={() => setMode("view")} onSave={saveDaily} />
+      <DailyForm
+        daily={mode === "edit" ? selectedDaily : undefined}
+        projects={projects}
+        people={people}
+        projectParticipants={projectParticipants}
+        tags={tags}
+        onCancel={() => setMode("view")}
+        onSave={saveDaily}
+      />
     )
 
   if (layoutMode === "vertical") {

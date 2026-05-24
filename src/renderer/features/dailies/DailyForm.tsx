@@ -4,7 +4,7 @@ import type { Daily, DailyInput, DailyTaskInput } from "@shared/types/daily"
 import { splitTokens } from "@renderer/lib/utils"
 import { Button } from "@renderer/components/ui/button"
 import { Input } from "@renderer/components/ui/input"
-import { Textarea } from "@renderer/components/ui/textarea"
+import { RichTextEditor } from "@renderer/components/RichTextEditor"
 
 const emptyForm: DailyInput = {
   title: "",
@@ -26,6 +26,8 @@ const emptyForm: DailyInput = {
 interface DailyFormProps {
   daily?: Daily
   projects: string[]
+  people: string[]
+  projectParticipants: Record<string, string[]>
   tags: string[]
   onCancel: () => void
   onSave: (daily: DailyInput) => Promise<void>
@@ -63,7 +65,7 @@ const contentSections: Array<{
   }
 ]
 
-export function DailyForm({ daily, projects, tags, onCancel, onSave }: DailyFormProps) {
+export function DailyForm({ daily, projects, people, projectParticipants, tags, onCancel, onSave }: DailyFormProps) {
   const [form, setForm] = useState<DailyInput>(emptyForm)
   const [participantsText, setParticipantsText] = useState("")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -157,6 +159,20 @@ export function DailyForm({ daily, projects, tags, onCancel, onSave }: DailyForm
     setSelectedTags((current) => current.filter((item) => item !== tag))
   }
 
+  const selectedParticipants = splitTokens(participantsText)
+  const projectPeople = form.project ? projectParticipants[form.project] ?? [] : []
+  const participantSuggestions = Array.from(new Set([...projectPeople, ...people])).filter((person) => !selectedParticipants.includes(person))
+
+  const addParticipant = (person: string) => {
+    setParticipantsText((current) => {
+      const currentPeople = splitTokens(current)
+      if (currentPeople.includes(person)) {
+        return current
+      }
+      return [...currentPeople, person].join(", ")
+    })
+  }
+
   return (
     <form className="flex h-full flex-col" onSubmit={handleSubmit}>
       <div className="flex items-center justify-between border-b border-border px-8 py-4">
@@ -223,6 +239,20 @@ export function DailyForm({ daily, projects, tags, onCancel, onSave }: DailyForm
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase text-muted-foreground">Participantes</span>
                 <Input value={participantsText} onChange={(event) => setParticipantsText(event.target.value)} placeholder="Ana, Bruno, Carla" />
+                {participantSuggestions.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {participantSuggestions.slice(0, 8).map((person) => (
+                      <button
+                        key={person}
+                        type="button"
+                        className="rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground hover:bg-accent"
+                        onClick={() => addParticipant(person)}
+                      >
+                        + {person}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </label>
               <div className="space-y-2">
                 <span className="text-xs font-semibold uppercase text-muted-foreground">Tags</span>
@@ -268,12 +298,14 @@ export function DailyForm({ daily, projects, tags, onCancel, onSave }: DailyForm
           {contentSections.map((section) => (
             <label key={section.key} className="block rounded-md border border-border bg-card p-5">
               <span className="text-sm font-semibold uppercase text-muted-foreground">{section.label}</span>
-              <Textarea
-                className="mt-3 min-h-28 border-0 bg-transparent px-0 py-0 text-sm leading-7 shadow-none focus-visible:ring-0"
-                value={form[section.key]}
-                onChange={(event) => updateText(section.key, event.target.value)}
-                placeholder={section.placeholder}
-              />
+              <div className="mt-3">
+                <RichTextEditor
+                  mentions={selectedParticipants}
+                  value={form[section.key]}
+                  onChange={(value) => updateText(section.key, value)}
+                  placeholder={`${section.placeholder} Use @ para mencionar participantes.`}
+                />
+              </div>
             </label>
           ))}
 
