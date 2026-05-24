@@ -44,19 +44,22 @@
     "vite": "^6.0.5",
     "wait-on": "^8.0.1"
   },
-  "build": {
+    "build": {
     "appId": "com.daily-notes.app",
     "productName": "DailyNotes",
     "directories": {
       "output": "dist-release"
     },
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ],
     "files": [
       "dist/**/*",
       "package.json"
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "artifactName": "DailyNotes.${ext}",
+      "artifactName": "DailyNotes-${arch}.${ext}",
       "target": [
         "dmg",
         "zip",

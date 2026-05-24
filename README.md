@@ -153,9 +153,12 @@ Os arquivos sao criados em:
 
 ```text
 dist-release/
-  DailyNotes.dmg
-  DailyNotes.zip
+  DailyNotes-arm64.dmg
+  DailyNotes-arm64.zip
+  DailyNotes-x64.dmg
+  DailyNotes-x64.zip
   mac-arm64/DailyNotes.app
+  mac/DailyNotes.app
 ```
 
 ## Distribuicao
@@ -163,15 +166,17 @@ dist-release/
 Para uso manual:
 
 1. Rode `npm run dist`
-2. Abra `dist-release/DailyNotes.dmg`
+2. Abra o `.dmg` da arquitetura do seu Mac
 3. Arraste `DailyNotes.app` para `Applications`
 
 No GitHub Actions, a cada push/merge na `main`, o workflow cria uma nova release contendo:
 
-- `DailyNotes.dmg`
-- `DailyNotes.zip`
+- `DailyNotes-arm64.dmg` para Macs Apple Silicon
+- `DailyNotes-x64.dmg` para Macs Intel
+- `DailyNotes-arm64.zip`
+- `DailyNotes-x64.zip`
 
-O `.zip` contem o `.app`, ja que GitHub Releases nao anexa diretorios diretamente.
+Os `.zip` contem o `.app`, ja que GitHub Releases nao anexa diretorios diretamente.
 
 ## Notas sobre assinatura
 
@@ -182,3 +187,5 @@ CSC_IDENTITY_AUTO_DISCOVERY=false
 ```
 
 Assim o build funciona em CI sem certificado Apple Developer. Para distribuicao publica fora de ambiente local, ainda sera necessario configurar assinatura e notarizacao da Apple.
+
+Sem notarizacao, macOS pode bloquear a primeira abertura de um app baixado da internet. Nesse caso, use clique direito > Open, ou aprove explicitamente em System Settings > Privacy & Security.
