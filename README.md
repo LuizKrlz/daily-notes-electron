@@ -1,25 +1,26 @@
 # Daily Notes
 
-Daily Notes e um aplicativo desktop local para registrar dailys de trabalho, organizar contexto por projeto/data/tags e acompanhar tasks que nascem dessas reunioes.
+Daily Notes is a local desktop app for capturing work daily notes, organizing context by project/date/tags, and tracking tasks that come out of those meetings.
 
-O foco do projeto e ser rapido, simples, offline-first e facil de evoluir com apoio do Codex.
+The project is designed to be fast, simple, offline-first, and easy to evolve with Codex.
 
-## Funcionalidades
+## Features
 
-- Criacao, edicao, listagem e exclusao de dailys
-- Busca textual simples
-- Filtros por hoje, data, projeto e tag
-- Projeto com autocomplete baseado em projetos ja usados
-- Tags com autocomplete, multiplas selecoes e chips removiveis
-- Data da daily editavel, separada da data tecnica de criacao
-- Participantes por daily
-- Secoes de anotacao: ontem, hoje, blockers, discussoes e observacoes
-- Tasks vinculadas a uma daily
-- Board de tasks de hoje com colunas `todo`, `doing` e `done`
-- Drag and drop de tasks entre colunas, persistindo o status no SQLite
+- Create, edit, list, and delete dailies
+- Simple text search
+- Filters by today, date, project, and tag
+- Project autocomplete based on previously used projects
+- Tag autocomplete with multiple selected tags and removable chips
+- Editable daily date, separate from the technical creation date
+- Daily participants
+- Note sections: yesterday, today, blockers, discussions, and observations
+- Rich text blocks with participant mentions using `@`
+- Tasks linked to a daily
+- Today's task board with `todo`, `doing`, and `done` columns
+- Drag and drop tasks between columns, persisting status in SQLite
 - Dark mode
-- Layout padrao e layout vertical
-- Painel de listagem recolhivel para liberar area de leitura/escrita
+- Default and vertical layouts
+- Collapsible daily list panel to free up reading/writing space
 
 ## Stack
 
@@ -28,65 +29,71 @@ O foco do projeto e ser rapido, simples, offline-first e facil de evoluir com ap
 - TypeScript
 - Vite
 - TailwindCSS
-- Componentes locais no estilo ShadCN UI
+- Local ShadCN-style UI primitives
 - Zustand
 - Zod
 - SQLite
 - better-sqlite3
 - electron-builder
 
-## Decisoes tomadas
+## Decisions
 
 ### Offline-first
 
-O app nao depende de backend remoto. Todos os dados ficam em SQLite local, salvo em:
+The app does not depend on a remote backend. All data is stored in a local SQLite database:
 
 ```bash
 ~/Library/Application Support/DailyNotes/daily-notes.sqlite
 ```
 
-Isso deixa o app rapido, utilizavel sem internet e simples de distribuir.
+This keeps the app fast, usable without internet access, and simple to distribute.
 
-### SQLite no processo main
+### SQLite in the main process
 
-O renderer nunca acessa SQLite diretamente. O fluxo e:
+The renderer never accesses SQLite directly. The flow is:
 
 ```text
-React Renderer -> Preload tipado -> IPC -> Electron Main -> SQLite
+React Renderer -> Typed Preload -> IPC -> Electron Main -> SQLite
 ```
 
-Essa separacao mantem `nodeIntegration=false` e `contextIsolation=true`.
+This keeps `nodeIntegration=false` and `contextIsolation=true`.
 
-### Sem ORM pesado
+### No heavy ORM
 
-O projeto usa SQL direto com `better-sqlite3`. Para o tamanho atual do app, isso reduz complexidade e facilita migracoes simples.
+The project uses direct SQL with `better-sqlite3`. For the current size of the app, this keeps complexity low and makes small migrations straightforward.
 
-### Daily date separada de createdAt
+### Projects and people as entities
 
-`createdAt` representa quando o registro foi criado. `dailyDate` representa a data da daily em si e pode ser editada pelo usuario.
+Projects and people are first-class database entities. A daily is linked to a project, and people can be linked both to a project and to a specific daily.
 
-Essa decisao permite registrar dailys atrasadas ou corrigir datas sem perder auditoria basica.
+When a person participates in a daily for a project, that person also becomes associated with the project and appears as a suggestion in future dailies for that project.
 
-### Tasks como entidade
+### Daily date separate from createdAt
 
-Tasks nao sao texto solto. Elas possuem:
+`createdAt` records when the row was created. `dailyDate` represents the actual date of the daily and can be edited by the user.
+
+This allows users to register late dailies or correct dates without losing basic audit information.
+
+### Tasks as entities
+
+Tasks are not loose text. They have:
 
 - `id`
 - `title`
 - `status`
-- vinculo com a daily
+- a link to the daily
 
-Isso permite mostrar checklist dentro da daily e board separado para acompanhamento.
+This makes it possible to show a checklist inside the daily and a separate board for task tracking.
 
-### Layout vertical opcional
+### Optional vertical layout
 
-O layout padrao continua sendo sidebar, listagem e detalhe. O layout vertical reorganiza filtros/navegacao no topo, mantendo lista e conteudo lado a lado para monitores em retrato.
+The default layout remains sidebar, list, and detail. The vertical layout moves filters/navigation to the top while keeping the list and content side by side for portrait monitors.
 
-### Listagem recolhivel
+### Collapsible list
 
-A lista de dailys pode ser recolhida para aumentar a area util do conteudo. No board de tasks ela nao aparece, porque a lista nao agrega nessa visualizacao.
+The daily list can be collapsed to increase the usable content area. It is hidden on the task board because it does not add value in that view.
 
-## Estrutura
+## Structure
 
 ```text
 src/
@@ -110,46 +117,46 @@ src/
     types/
 ```
 
-## Como rodar localmente
+## Running Locally
 
-Requisitos:
+Requirements:
 
 - macOS
-- Node.js 22 ou compativel
+- Node.js 22 or compatible
 - npm
-- Xcode Command Line Tools, por causa de dependencias nativas como `better-sqlite3`
+- Xcode Command Line Tools, because native dependencies such as `better-sqlite3` need them
 
-Instale as dependencias:
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-Rode em modo desenvolvimento:
+Run in development mode:
 
 ```bash
 npm run dev
 ```
 
-Valide tipos:
+Typecheck:
 
 ```bash
 npm run typecheck
 ```
 
-Gere build de producao:
+Create a production build:
 
 ```bash
 npm run build
 ```
 
-Gere os artefatos macOS:
+Generate macOS artifacts:
 
 ```bash
 npm run dist
 ```
 
-Os arquivos sao criados em:
+Artifacts are created in:
 
 ```text
 dist-release/
@@ -161,31 +168,31 @@ dist-release/
   mac/DailyNotes.app
 ```
 
-## Distribuicao
+## Distribution
 
-Para uso manual:
+For manual use:
 
-1. Rode `npm run dist`
-2. Abra o `.dmg` da arquitetura do seu Mac
-3. Arraste `DailyNotes.app` para `Applications`
+1. Run `npm run dist`
+2. Open the `.dmg` for your Mac architecture
+3. Drag `DailyNotes.app` into `Applications`
 
-No GitHub Actions, a cada push/merge na `main`, o workflow cria uma nova release contendo:
+On GitHub Actions, every push/merge to `main` creates a new release containing:
 
-- `DailyNotes-arm64.dmg` para Macs Apple Silicon
-- `DailyNotes-x64.dmg` para Macs Intel
+- `DailyNotes-arm64.dmg` for Apple Silicon Macs
+- `DailyNotes-x64.dmg` for Intel Macs
 - `DailyNotes-arm64.zip`
 - `DailyNotes-x64.zip`
 
-Os `.zip` contem o `.app`, ja que GitHub Releases nao anexa diretorios diretamente.
+The `.zip` files contain the `.app`, because GitHub Releases cannot attach directories directly.
 
-## Notas sobre assinatura
+## Signing Notes
 
-O workflow desativa descoberta automatica de certificado com:
+The workflow disables automatic certificate discovery with:
 
 ```bash
 CSC_IDENTITY_AUTO_DISCOVERY=false
 ```
 
-Assim o build funciona em CI sem certificado Apple Developer. Para distribuicao publica fora de ambiente local, ainda sera necessario configurar assinatura e notarizacao da Apple.
+This allows CI builds to run without an Apple Developer certificate. For public distribution outside local/internal use, Apple signing and notarization should be configured.
 
-Sem notarizacao, macOS pode bloquear a primeira abertura de um app baixado da internet. Nesse caso, use clique direito > Open, ou aprove explicitamente em System Settings > Privacy & Security.
+Without notarization, macOS may block the first launch of an app downloaded from the internet. In that case, use right-click > Open, or approve it explicitly in System Settings > Privacy & Security.

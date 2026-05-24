@@ -40,7 +40,7 @@ jobs:
         run: npm run typecheck
 
       - name: Build macOS artifacts
-        run: npm run dist -- --mac --${{ matrix.arch }}
+        run: npm run dist -- --mac --${{ matrix.arch }} --publish never
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -56,6 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
@@ -67,6 +68,7 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: daily-notes-${{ github.run_number }}
           name: Daily Notes ${{ github.run_number }}
           body: |
